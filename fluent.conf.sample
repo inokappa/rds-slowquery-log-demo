@@ -1,0 +1,57 @@
+#
+# RDS パラメータグループにて...
+# - log_output : TABLE
+# - slow_query_log : 1
+# - long_query_time : 任意の秒数
+#
+<source>
+  @type rds_slowlog
+  tag rds-slowlog
+  host ${RDS_ENDPOINT}
+  username ${RDS_USERNAME}
+  password ${RDS_PASSWORD}
+</source>
+
+<match rds-slowlog>
+  @type copy
+  <store>
+    @type stdout
+  </store>
+  <store>
+    @type rewrite
+    add_prefix rewrited
+    <rule>
+      key     sql_text
+      pattern ^CALL
+      ignore  true
+    </rule>
+  </store>
+</match>
+
+#
+# query_time と lock_time が 00:00:00 というフォーマットで入ってくるので苦肉の策
+#
+<filter rewrited.rds-slowlog>
+  @type record_transformer
+  enable_ruby
+  <record>
+    query_time_float ${query_time.split(":")[-1].to_i}
+    lock_time_float ${lock_time.split(":")[-1].to_i}
+  </record>
+</filter> 
+
+<match rewrited.rds-slowlog>
+  @type copy
+  <store>
+    @type stdout
+  </store>
+  <store>
+    @type elasticsearch
+    type_name mysqlslowquery
+    host elasticsearch
+    port 9200
+    logstash_format true
+    logstash_prefix mysqlslowquery
+    include_tag_key true
+  </store>
+</match>
