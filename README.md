@@ -1,5 +1,7 @@
 # RDS のスロークエリを出来るだけ手軽に可視化する考察
 
+![](http://cdn-ak.f.st-hatena.com/images/fotolife/i/inokara/20160503/20160503145236.png)
+
 ## モチベーション
 
 - RDS のスロークエリをお手軽に可視化出来ないものか
