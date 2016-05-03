@@ -87,6 +87,17 @@ curl -XDELETE "elasticsearch:9200/mysqlslowquery-*"
 ### Kibana で確認
 
 スロークエリが検出されると Elasticsearch にログが蓄積されるので、あとは Kibana で確認する。
+Kibana テンプレートも一応用意してあるのでインポートすれば OK 牧場。
+
+```sh
+% tree kibana
+kibana
+├── dashiboard.json
+├── discover.json
+└── visualize.json
+
+0 directories, 3 files
+```
 
 ***
 
