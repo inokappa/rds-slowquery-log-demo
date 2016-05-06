@@ -25,11 +25,14 @@
 
 ### RDS のパラメータグループの設定
 
-- log_output : TABLE
-- slow_query_log : 1
-- long_query_time : 任意の秒数
+- ログの出力先をテーブルに設定する場合
+ - log_output : TABLE
+ - slow_query_log : 1
+ - long_query_time : 任意の秒数
+- ログの出力先をファイルに設定する場合
+ - log_output : FILE
 
-### fluent.conf を設定する
+### fluent.conf を設定する(ログの出力先をテーブルに設定した場合)
 
 ```
 <source>
@@ -44,18 +47,66 @@
 
 ```
 
+### stream.conf を設定する(ログの出力先をファイルに設定した場合)
+
+```
+<source>
+  @type rds_mysqlslowlog_stream
+  tag rds-slowlog
+  db_instance_identifier your-db
+  marker_file /tmp/log_marker.txt
+</source>
+
+(snip)
+```
+
+### docker-compose-stream.yml の修正(ログの出力先をファイルに設定した場合のみ)
+
+```yaml
+elasticsearch:
+  image: elasticsearch
+  ports:
+    - 9200:9200
+    - 9300:9300
+
+fluentd:
+  build: .
+  links:
+    - elasticsearch
+  volumes:
+    - .:/home/fluent
+  environment:
+    - FLUENTD_CONF=stream.conf
+    - AWS_ACCESS_KEY_ID=AKxxxxxxxxxxxxxxxxxxxxxxxx
+    - AWS_SECRET_ACCESS_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+kibana:
+  image: kibana
+  ports:
+    - 5601:5601
+  links:
+    - elasticsearch
+```
+
 ### コンテナのビルドと起動
 
-コンテナをビルドして起動する。
+- ログの出力先をテーブルに設定した場合
 
 ```sh
 docker-compose build
 docker-compose up -d
 ```
 
+- ログの出力先をファイルに設定した場合
+
+```sh
+docker-compose -f docker-compose-stream.yml build fluentd
+docker-compose up -d
+```
+
 ### mapping template を指定する
 
-mapping template を指定する。
+- ログの出力先をテーブルに設定した場合
 
 ```javascript
 curl -XPUT http://elasticsearch:9200/_template/mysqlslowquery_template -d '
@@ -80,13 +131,38 @@ curl -XPUT http://elasticsearch:9200/_template/mysqlslowquery_template -d '
 }'
 ```
 
+- ログの出力先をファイルに設定した場合
+
+```javascript
+curl -XPUT http://elasticsearch:9200/_template/mysqlslowquery_template -d '
+{
+  "template": "mysqlslowquery-*",
+  "mappings": {
+    "mysqlslowquery": {
+      "properties": {
+        "query_time": { "type": "float" },
+        "lock_time": { "type": "float" },
+        "rows_examined": { "type": "integer" },
+        "rows_sent": { "type": "integer" },
+        "sql": {
+          "type": "string",
+          "fields": {
+            "raw": {"type": "string", "index": "not_analyzed"}
+          }
+        }
+      }
+    }
+  }
+}'
+```
+
 mapping template を設定後、念のためにインデックスを削除しておく。
 
 ```sh
 curl -XDELETE "elasticsearch:9200/mysqlslowquery-*"
 ```
 
-### Kibana で確認
+### (おまけ) Kibana で確認
 
 スロークエリが検出されると Elasticsearch にログが蓄積されるので、あとは Kibana で確認する。
 Kibana テンプレートも一応用意してあるのでインポートすれば OK 牧場。
@@ -106,7 +182,7 @@ kibana
 ## 面倒だったところ
 
 - 当初は TABLE では無く、FILE で記録したかったけど断念
-- `sql_text` は analyze させないこと(`multi_field` は利用出来ないので注意する)
+- `sql` 又は `sql_text` は analyze させないこと(`multi_field` は利用出来ないので注意する)
 - ローテーションを行う際のクエリも飛んできてしまうので fluent-plugin-rewrite でローテーションクエリを除外
 - `query_time` と `lock_time` のフォーマットが `NN:NN:NN` となっているので record_transformer プラグインで強引に数値化している
 

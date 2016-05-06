@@ -1,1 +1,3 @@
 fluent.conf
+stream.conf
+docker-compose-stream.yml

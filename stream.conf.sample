@@ -1,0 +1,22 @@
+<source>
+  @type rds_mysqlslowlog_stream
+  tag rds-slowlog
+  db_instance_identifier your-db
+  marker_file /tmp/log_marker.txt
+</source>
+
+<match rds-slowlog>
+  @type copy
+  <store>
+    @type stdout
+  </store>
+  <store>
+    @type elasticsearch
+    type_name mysqlslowquery
+    host elasticsearch
+    port 9200
+    logstash_format true
+    logstash_prefix mysqlslowquery
+    include_tag_key true
+  </store>
+</match>

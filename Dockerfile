@@ -9,18 +9,22 @@ LABEL Description="Fluentd docker image" Vendor="Fluent Organization" Version="1
 # Docker creates a layer for every RUN-Statement
 # therefore an 'apk delete build*' has no effect
 RUN apk --no-cache --update add \
+                            tzdata \
                             build-base \
                             ca-certificates \
                             ruby \
                             ruby-irb \
                             ruby-dev \
                             mariadb-dev && \
+    cp /usr/share/zoneinfo/Asia/Tokyo /etc/localtime && \
     echo 'gem: --no-document' >> /etc/gemrc && \
-    gem install fluentd -v 0.12.21 && \
+    gem install mysql-slowquery-parser && \
+    gem install aws-sdk && \
+    gem install fluentd -v 0.12.23 && \
     gem install fluent-plugin-rds-slowlog && \
     gem install fluent-plugin-elasticsearch && \
     gem install fluent-plugin-rewrite && \
-    apk del build-base ruby-dev && \
+    apk del build-base ruby-dev tzdata && \
     rm -rf /tmp/* /var/tmp/* /var/cache/apk/* /usr/lib/mysqld* /usr/bin/mysql*
 
 RUN adduser -D -g '' -u 1919 -h /home/fluent fluent
@@ -30,7 +34,6 @@ RUN chown -R fluent:fluent /home/fluent
 RUN mkdir -p /fluentd/log
 # configuration/plugins path (default: copied from .)
 RUN mkdir -p /fluentd/etc /fluentd/plugins
-
 RUN chown -R fluent:fluent /fluentd
 
 USER fluent
@@ -44,6 +47,9 @@ ENV GEM_PATH /home/fluent/.gem/ruby/2.2.0:$GEM_PATH
 #COPY fluent.conf /fluentd/etc/
 #ONBUILD COPY fluent.conf /fluentd/etc/
 #ONBUILD COPY plugins /fluentd/plugins/
+COPY plugins /fluentd/plugins/
+RUN touch /tmp/log_marker.txt
+
 
 ENV FLUENTD_OPT=""
 ENV FLUENTD_CONF="fluent.conf"
