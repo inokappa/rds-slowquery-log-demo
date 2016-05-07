@@ -48,7 +48,6 @@ ENV GEM_PATH /home/fluent/.gem/ruby/2.2.0:$GEM_PATH
 #ONBUILD COPY fluent.conf /fluentd/etc/
 #ONBUILD COPY plugins /fluentd/plugins/
 COPY plugins /fluentd/plugins/
-RUN touch /tmp/log_marker.txt
 
 
 ENV FLUENTD_OPT=""
