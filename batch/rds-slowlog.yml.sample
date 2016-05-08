@@ -1,0 +1,24 @@
+in:
+  type: mysql
+  host: demo-db.xxxxxxxxxxx.ap-northeast-1.rds.amazonaws.com
+  user: ${user}
+  password: ${password}
+  database: mysql
+  query: |
+    SELECT
+      CONVERT_TZ(start_time, '+00:00','+09:00') AS converted_start_time,
+      user_host,
+      SECOND(query_time) AS converted_query_time,
+      SECOND(lock_time) AS converted_lock_time,
+      rows_sent,
+      rows_examined,
+      db,
+      sql_text
+    FROM mysql.slow_log_backup
+
+out:
+  type: elasticsearch
+  index: embulk-YYYY.MM.DD
+  index_type: embulk
+  nodes:
+    - host: ${elasticsearch-host}

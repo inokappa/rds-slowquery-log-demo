@@ -1,0 +1,13 @@
+{
+  "template": "embulk-*",
+  "mappings": {
+    "embulkimport": {
+      "properties": {
+        "sql_text": {
+          "type": "string",
+          "index": "not_analyzed"
+        }
+      }
+    }
+  }
+}

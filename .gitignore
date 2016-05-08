@@ -1,3 +1,4 @@
 fluent.conf
 stream.conf
 docker-compose-stream.yml
+rds-slowlog.yml
