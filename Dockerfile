@@ -1,6 +1,3 @@
-#
-# forked : https://github.com/fluent/fluentd-docker-image/blob/master/Dockerfile
-#
 FROM fluent/fluentd:debian-onbuild
 MAINTAINER TAGOMORI Satoshi <tagomoris@gmail.com>
 LABEL Description="Fluentd docker image" Vendor="Fluent Organization" Version="1.1"
@@ -14,9 +11,6 @@ ENV LANGUAGE C.UTF-8
 ENV LANG C.UTF-8
 ENV LC_ALL C.UTF-8
 ENV LC_CTYPE C.UTF-8
-
-# ENV GEM_PATH /home/fluent/.gem/ruby/2.3.0
-# ENV BUNDLE_PATH ${GEM_PATH}
 
 COPY Gemfile ./
 
