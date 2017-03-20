@@ -1,0 +1,32 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: rds-logshipper
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: rds-logshipper
+    spec:
+      containers:
+      - image: dailyhotel/rds-slowquery-log:latest
+        imagePullPolicy: Always
+        name: rds-logshipper
+        env:
+          - name: RDS_HOSTNAME
+            value: "my-database"
+          - name: RDS_USERNAME
+            value: "master"
+          - name: RDS_PASSWORD
+            value: "my-password"
+          - name: ES_HOSTNAME
+            value: "my-es"
+          - name: ES_USERNAME
+            value: "fluentd"
+          - name: ES_PASSWORD
+            value: "my-es-password"
+          - name: ES_PORT
+            value: "9999"
+          - name: ES_SCHEME
+            value: "https"

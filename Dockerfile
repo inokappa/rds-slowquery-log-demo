@@ -1,58 +1,43 @@
-#
-# forked : https://github.com/fluent/fluentd-docker-image/blob/master/Dockerfile
-#
-FROM alpine:latest
+FROM fluent/fluentd:debian-onbuild
 MAINTAINER TAGOMORI Satoshi <tagomoris@gmail.com>
 LABEL Description="Fluentd docker image" Vendor="Fluent Organization" Version="1.1"
 
-# Do not split this into multiple RUN!
-# Docker creates a layer for every RUN-Statement
-# therefore an 'apk delete build*' has no effect
-RUN apk --no-cache --update add \
-                            tzdata \
-                            build-base \
-                            ca-certificates \
-                            ruby \
-                            ruby-irb \
-                            ruby-dev \
-                            mariadb-dev && \
-    cp /usr/share/zoneinfo/Asia/Tokyo /etc/localtime && \
-    echo 'gem: --no-document' >> /etc/gemrc && \
-    gem install mysql-slowquery-parser && \
-    gem install aws-sdk && \
-    gem install fluentd -v 0.12.23 && \
-    gem install fluent-plugin-rds-slowlog && \
-    gem install fluent-plugin-elasticsearch && \
-    gem install fluent-plugin-rewrite && \
-    apk del build-base ruby-dev tzdata && \
-    rm -rf /tmp/* /var/tmp/* /var/cache/apk/* /usr/lib/mysqld* /usr/bin/mysql*
-
-RUN adduser -D -g '' -u 1919 -h /home/fluent fluent
-RUN chown -R fluent:fluent /home/fluent
-
-# for log storage (maybe shared with host)
-RUN mkdir -p /fluentd/log
-# configuration/plugins path (default: copied from .)
-RUN mkdir -p /fluentd/etc /fluentd/plugins
-RUN chown -R fluent:fluent /fluentd
-
-USER fluent
+# USER fluent
+USER root
 WORKDIR /home/fluent
+ENV PATH /home/fluent/.gem/ruby/2.3.0/bin:$PATH
 
-# Tell ruby to install packages as user
-RUN echo "gem: --user-install --no-document" >> ~/.gemrc
-ENV PATH /home/fluent/.gem/ruby/2.2.0/bin:$PATH
-ENV GEM_PATH /home/fluent/.gem/ruby/2.2.0:$GEM_PATH
+ENV LANGUAGE C.UTF-8
+ENV LANG C.UTF-8
+ENV LC_ALL C.UTF-8
+ENV LC_CTYPE C.UTF-8
 
-#COPY fluent.conf /fluentd/etc/
-#ONBUILD COPY fluent.conf /fluentd/etc/
-#ONBUILD COPY plugins /fluentd/plugins/
-COPY plugins /fluentd/plugins/
+COPY Gemfile ./
 
+RUN buildDeps="sudo make gcc g++ libc-dev ruby-dev git" \
+ && apt-get update \
+ && apt-get install -y --no-install-recommends $buildDeps \
+ && apt-get install -y default-libmysqlclient-dev \
+ && sudo -u fluent gem install \
+  mysql2 \
+  mysql-slowquery-parser \
+  fluent-plugin-elasticsearch \
+  fluent-plugin-rewrite \
+ && gem install bundler \
+ && sudo -u fluent git clone https://github.com/kenjiskywalker/fluent-plugin-rds-slowlog.git \
+  && cd fluent-plugin-rds-slowlog \
+  && bundle install \
+  && sudo -u fluent rake build \
+  && sudo -u fluent gem install pkg/fluent-plugin-rds-slowlog-0.0.7.gem \
+ && sudo -u fluent gem sources --clear-all \
+  && SUDO_FORCE_REMOVE=yes \
+     apt-get purge -y --auto-remove \
+                   -o APT::AutoRemove::RecommendsImportant=false \
+                   $buildDeps \
+  && rm -rf /var/lib/apt/lists/* \
+            /home/fluent/.gem/ruby/2.3.0/cache/*.gem
 
-ENV FLUENTD_OPT=""
-ENV FLUENTD_CONF="fluent.conf"
+# USER fluent
 
-EXPOSE 24224 5140
-
-CMD exec fluentd -c ./$FLUENTD_CONF -p /fluentd/plugins $FLUENTD_OPT
+EXPOSE 24284
+CMD fluentd -c /fluentd/etc/$FLUENTD_CONF -p /fluentd/plugins $FLUENTD_OPT

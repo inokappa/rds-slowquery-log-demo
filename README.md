@@ -115,8 +115,8 @@ curl -XPUT http://elasticsearch:9200/_template/mysqlslowquery_template -d '
   "mappings": {
     "mysqlslowquery": {
       "properties": {
-        "query_time_float": { "type": "float" },
-        "lock_time_float": { "type": "float" },
+        "query_time_in_ns": { "type": "integer" },
+        "lock_time_in_ns": { "type": "integer" },
         "rows_examined": { "type": "integer" },
         "rows_sent": { "type": "integer" },
         "sql_text": {
